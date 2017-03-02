@@ -9,9 +9,9 @@ function application_depth(hObject, eventdata, handles)
     h = handles.h; 
     w = handles.w;
     Image1 = (getdata(handles.vid1, 1));
-    Image1 = imresize(Image1, [h w], 'bicubic');
+    %Image1 = imresize(Image1, [h w], 'bicubic');
     Image2 = (getdata(handles.vid2, 1));
-    Image2 = imresize(Image2, [h w], 'bicubic');
+    %Image2 = imresize(Image2, [h w], 'bicubic');
     L = single(undistortImage(Image1, stereoParams.CameraParameters1));
     R = single(undistortImage(Image2, stereoParams.CameraParameters2));
     L = imresize(mean(L, 3), [h w]);
@@ -44,7 +44,7 @@ function application_depth(hObject, eventdata, handles)
     v = handles.v;
 
     %tic
-    [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, threshG, threshC, layers, 0.02, 0.8, weighted_sampling);
+    [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, weighted_sampling);
     %toc
     
     axes(handles.axes1);

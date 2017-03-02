@@ -35,13 +35,13 @@ function application_tracking(hObject, eventdata, handles)
     %threshG = 3;
     %threshC = 30;
     threshG = 5;
-    threshC = 40;    
+    threshC = 30;    
     weighted_sampling = 0.05;
     
     f = handles.f;
     v = handles.v;
-    
-    [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, threshG, threshC, layers, 0.02, 0.8, weighted_sampling);    
+        
+    [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, weighted_sampling);
     
 
     %figure(af); imshow(ZL, [minZ maxZ]); colormap(pink); title('Confident Left Depth'); drawnow;
@@ -58,7 +58,7 @@ function application_tracking(hObject, eventdata, handles)
     Mnew = Tini*[Rini, [0 0 0]'; 0 0 0 1];
 
     light = 1000;
-    [Zx, Ix, ~] = render_CAD_model(f, v, CL, CR, Mnew, h, w, minZ, maxZ, 1/light);
+    [Zx, Ix, ~] = render_CAD_model(f, v, CL, CR, Mnew, h, w, minZ, maxZ, 1/light, 1);
     Zx(Zx > maxZ) = nan;
     Ix = uint8(Ix(:,:,1)*255);
     Zx(Ix < threshC) = nan;

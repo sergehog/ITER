@@ -33,7 +33,7 @@ maxZ2 = maxZ*1.5; % increase actual Z-range in order to properly threshould out 
 %CostLf = recursive_bilateral(CostL, L, sigma, alpha);
 %CostLf = recursive_gaussian(CostL, alpha);
 CostL(CostL > 20) = 20;
-CostLf = fast_average(CostL, 6);
+CostLf = fast_average(CostL, 5);
 clear CostL
 DispL = wta_simple(CostLf, 0, 1);
 clear CostLf
@@ -42,7 +42,7 @@ clear CostLf
 %CostRf = recursive_bilateral(CostR, R, sigma, alpha);
 %CostRf = recursive_gaussian(CostR, alpha);
 CostR(CostR > 20) = 20;
-CostRf = fast_average(CostR, 6);
+CostRf = fast_average(CostR, 5);
 clear CostR
 DispR = wta_simple(CostRf, 0, 1);
 clear CostRf
@@ -86,4 +86,5 @@ end
 
 ZL(L < threshC) = nan;
 ZR(R < threshC) = nan;
-
+ZL(L >= 255) = nan;
+ZR(R >= 255) = nan;

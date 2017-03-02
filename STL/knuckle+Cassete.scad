@@ -1,4 +1,4 @@
-rotate([0, 0, 90])
+rotate([0, 0, -90])
 translate([0,-250,45])
 {
 rotate([-90, 0, 0])
@@ -12,14 +12,25 @@ rotate([-90, 0, 0])
 	}
 }
 
+color("red")
+{
+	translate([320, 120, 50])
+	{
+		rotate([0, 180, 20])
+		{
+			import("Cassette_v2_assembly.STL");
+		}
+	}
+}
+
 color("green")
 {
-	translate([-13.5, 71, -20])
+	translate([-13.5, 71, 10])
 	{
 		difference()
 		{
-			cylinder(h=20, r1=40, r2=40, center=true);
-			cylinder(h=22, r1=15, r2=15, center=true);
+			cylinder(h=80, r1=40, r2=40, center=true);
+			cylinder(h=200, r1=15, r2=15, center=true);
 		}
 	}
 }

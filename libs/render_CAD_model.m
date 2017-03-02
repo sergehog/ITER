@@ -1,9 +1,9 @@
-function [Zq, Iq, Nq] = render_CAD_model(f, v, CL, CR, M, h, w, minZ, maxZ, aaa, left2right)
+function [Zq, Iq, Nq] = render_CAD_model(f, v, CL, CR, M, h, w, minZ, maxZ, aaa, doLeft2right)
 if nargin < 10
     aaa = 0.001;
 end
 if nargin < 11
-    left2right = 1;
+    doLeft2right = 1;
 end
 
 
@@ -46,7 +46,7 @@ clear mex
 %figure; imshow(Mask); 
 %% Remove Occluded Parts
 %CRini = CR*Tini*Rini;
-if  left2right > 0
+if  doLeft2right > 0
     CRm = CR*M;
     % New Rendering with normals
     v2 = v;

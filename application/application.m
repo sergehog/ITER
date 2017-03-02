@@ -11,7 +11,7 @@ function varargout = application(varargin)
 %
 %      APPLICATION('Property','Value',...) creates a new APPLICATION or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before application_OpeningFcn gets called.  An
+%      applied to the GUI before applicatio255/n_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
 %      stop.  All inputs are passed to application_OpeningFcn via varargin.
 %
@@ -50,8 +50,8 @@ function application_OpeningFcn(hObject, eventdata, handles, varargin)
 
     addpath(genpath('..\libs'));
 
-    handles.setup = 1; % my stereo-camera setup
-    %handles.setup = 2; % hydraulics Lab stereo-camera setup
+    %handles.setup = 1; % my stereo-camera setup
+    handles.setup = 2; % hydraulics Lab stereo-camera setup
 
     % Choose default command line output for application
     handles.output = hObject;
@@ -67,19 +67,19 @@ function application_OpeningFcn(hObject, eventdata, handles, varargin)
     %params2 = load(['hand2eye.mat']); 
     handles.X = params2.X;
 
-    filename = '..\STL\Knuckle_cut_to_size.stl'; 
-    RTmat = [eye(3), [0 0 0]'; 0 0 0 1];
+    filename = '..\STL\Knuckle_cut_to_size2.stl'; 
+    RTmat = [rodrigues([0 0 0]), [0 0 0]'; 0 0 0 1];
     [f, v] = load_CAD_model(filename, RTmat);
     
     handles.f = f;
     handles.v = v;
-    %handles.w = 960;
-    %handles.h = 540;
-    handles.w = 1920;
-    handles.h = 1080;
+    handles.w = 960;
+    handles.h = 540;
+    %handles.w = 1920;
+    %handles.h = 1080;
     handles.minZ = 300;
-    handles.maxZ = 2000;
-    handles.layers = 50;
+    handles.maxZ = 5000;
+    handles.layers = 100;
     
     %system('ITERSetup.exe');
     %handles.vid1 = videoinput('gentl', 1, 'RGB8Packed');

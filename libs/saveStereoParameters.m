@@ -22,7 +22,7 @@ function saveStereoParameters(stereoParams, filename)
             F = stereoParams.CameraParameters2.RadialDistortion;
             fprintf(fw,'%f\r\n%f\r\n',F(1),F(2));            
             %fprintf(fw,num2str('));
-            RT = [stereoParams.RotationOfCamera2', handles.stereoParams.TranslationOfCamera2'];
+            RT = [stereoParams.RotationOfCamera2', stereoParams.TranslationOfCamera2'];
             fprintf(fw,'%f\t%f\t%f\t%f\r\n',RT(1,1),RT(1,2),RT(1,3),RT(1,4));
             fprintf(fw,'%f\t%f\t%f\t%f\r\n',RT(2,1),RT(2,2),RT(2,3),RT(2,4));
             fprintf(fw,'%f\t%f\t%f\t%f\r\n',RT(3,1),RT(3,2),RT(3,3),RT(3,4));
