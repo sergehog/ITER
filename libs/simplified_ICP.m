@@ -1,9 +1,7 @@
-function [M, XYZl2] = simplified_ICP(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, thrPlane, XYZm, WorstRejection)
+function [M, XYZl2, ZL] = simplified_ICP(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, thrPlane, XYZm, WorstRejection)
 
    
-tic
 [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr);
-toc
 
 %figure; imshow(ZL, [minZ maxZ]); colormap(gca, jet); title('Estimated Depth');
 
@@ -23,11 +21,32 @@ XYZl = P2.Location;
 
 
 %%
-tic
-[TR, TT, ~, ~] = icp2(XYZm', XYZl', 2000, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
-toc
-M = [TR, TT;];
+if 1==1
+    [TR, TT, ~, ~] = icp2(XYZl', XYZm', 1000, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
+    M1 = [TR, TT; 0 0 0 1];
+    M1 = inv(M1);
 
-XYZl2 = XYZl;
-XYZl2(:,4) = 1;
-XYZl2 = XYZl2*M';
+    XYZl2 = XYZl;
+    XYZl2(:,4) = 1;
+    XYZl = (XYZl2*(M1)');
+    XYZl = XYZl(:,1:3);
+    [TR, TT, ~, ~] = icp2(XYZm', XYZl', 1000, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
+    M2 = [TR, TT; 0 0 0 1];
+
+    XYZl(:,4) = 1;
+    XYZl2 = XYZl*(M2)';
+
+    M = M2*M1;
+else
+    [TR, TT, ~, ~] = icp2(XYZm', XYZl', 1000, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
+    M = [TR, TT; 0 0 0 1];
+
+
+    %[TR, TT, ~, ~] = icp2(XYZl', XYZm', 1000, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
+    %M = [TR, TT; 0 0 0 1];
+    %M = inv(M);
+
+    XYZl2 = XYZl;
+    XYZl2(:,4) = 1;
+    XYZl2 = XYZl2*(M)';
+end

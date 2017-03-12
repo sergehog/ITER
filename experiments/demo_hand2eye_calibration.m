@@ -6,42 +6,45 @@ addpath(genpath('..\libs'));
 
 camera_setup = 2;
 
-%
-%if 1==2
 %experiment = 'calibration4'; 
-%frames = [1, 3:10];
-%%frames = [1, 4, 5, 6, 8];
-%DATA = [1963.370 -1381.642 898.949 19.611 110.392 3.158;
-%%2139.669 -1088.839 898.924 27.775 110.392 3.159;
-%1999.358 -1422.386 593.909 -20.418 114.959 -12.005;
-%1855.277 -1301.006 597.831 -47.447 118.383 7.152;
-%1873.134 -1444.215 539.327 -29.207 109.520 32.367;
-%1664.698 -1574.885 418.620 -45.182 116.446 27.783;
-%1721.682 -1615.142 612.783 -43.820 108.755 6.625;
-%1429.939 -1504.572 499.325 -55.175 120.837 43.844;
-%1016.596 -1737.278 231.631 -70.274 129.790 40.102;
-%1015.149 -1698.499 128.126 -70.823 132.784 46.499;
-%];
-%end
-
 %experiment = 'calibration5';
-%frames = 1:11;
-%DATA = [1972.456 -1017.043 753.244 -19.494 119.656 21.768;
-%    1615.824 -1521.209 753.248 -35.489 119.656 21.768;
-%    1694.787 -1504.806 610.338 -33.964 121.080 21.782;
-%    2060.996  -942.859 610.304 -16.945 121.081 21.782;
-%    2127.226  -963.678 563.697 -16.966 116.649 21.738;
-%    1788.997 -1501.080 563.660 -32.593 116.650 21.738;
-%    1713.000 -1436.405 269.319 -33.232 122.238 49.038;
-%    1975.687 -1245.997 422.164 -24.856 122.237 11.218;
-%    1992.391 -1253.924 559.744 -24.877 118.150 11.175;
-%    2176.567 -959.353 608.821 -16.867 118.152 -0.358;
-%    2205.528 -992.271 524.503 12.592 119.558 17.289;
-%];
+%experiment = 'calib6';
+%experiment = 'calib6';
+experiment = 'calibration7_March_10'
 
-experiment = 'calib6';
-frames = 1:20;
-DATA = [
+if strcmp(experiment,'calibration4') 
+    frames = [1, 3:10];
+    %frames = [1, 4, 5, 6, 8];
+    DATA = [1963.370 -1381.642 898.949 19.611 110.392 3.158;
+    %2139.669 -1088.839 898.924 27.775 110.392 3.159;
+    1999.358 -1422.386 593.909 -20.418 114.959 -12.005;
+    1855.277 -1301.006 597.831 -47.447 118.383 7.152;
+    1873.134 -1444.215 539.327 -29.207 109.520 32.367;
+    1664.698 -1574.885 418.620 -45.182 116.446 27.783;
+    1721.682 -1615.142 612.783 -43.820 108.755 6.625;
+    1429.939 -1504.572 499.325 -55.175 120.837 43.844;
+    1016.596 -1737.278 231.631 -70.274 129.790 40.102;
+    1015.149 -1698.499 128.126 -70.823 132.784 46.499;
+];
+
+elseif strcmp(experiment,'calibration5') 
+
+    frames = 1:11;
+    DATA = [1972.456 -1017.043 753.244 -19.494 119.656 21.768;
+    1615.824 -1521.209 753.248 -35.489 119.656 21.768;
+    1694.787 -1504.806 610.338 -33.964 121.080 21.782;
+    2060.996  -942.859 610.304 -16.945 121.081 21.782;
+    2127.226  -963.678 563.697 -16.966 116.649 21.738;
+    1788.997 -1501.080 563.660 -32.593 116.650 21.738;
+    1713.000 -1436.405 269.319 -33.232 122.238 49.038;
+    1975.687 -1245.997 422.164 -24.856 122.237 11.218;
+    1992.391 -1253.924 559.744 -24.877 118.150 11.175;
+    2176.567 -959.353 608.821 -16.867 118.152 -0.358;
+    2205.528 -992.271 524.503 12.592 119.558 17.289;
+    ];
+elseif strcmp(experiment,'calib6') 
+    frames = 1:20;
+    DATA = [
     1207.477 -1535.624 1368.316 -52.142 119.147 22.651;
     1277.269 -1624.296 887.693 -52.232 136.127 22.504;
     1705.629 -1173.526 843.326 -42.973 136.741 5.117;
@@ -63,6 +66,10 @@ DATA = [
     1130.112 -1253.362 535.608 -60.843 118.000 43.132;
     1173.636 -1283.687 584.092 -57.393 123.998 45.974;
 ];
+elseif strcmp(experiment,'calibration7_March_10') 
+    load(['images\calibration\', experiment, '\XYZABC.mat']);
+    frames = 1:size(XYZABC, 1);
+end
 
 
 %% Hand2eye Calibration
@@ -71,8 +78,8 @@ imageFileNames1 = {};
 imageFileNames2 = {};
 
 for i=1:numel(frames)
-    imageFileNames1{i} = ['images\calibration\',experiment,'\1\1_', num2str(frames(i)),'.png'];
-    imageFileNames2{i} = ['images\calibration\',experiment,'\2\2_', num2str(frames(i)),'.png'];    
+    imageFileNames1{i} = ['images\calibration\',experiment,'\1_', num2str(frames(i)),'.png'];
+    imageFileNames2{i} = ['images\calibration\',experiment,'\2_', num2str(frames(i)),'.png'];    
 end
 
 [imagePoints, boardSize, used] = detectCheckerboardPoints(imageFileNames1, imageFileNames2);
@@ -92,25 +99,38 @@ worldPoints = generateCheckerboardPoints(boardSize, squareSize);
 figure;
 showExtrinsics(stereoParams.CameraParameters2, 'PatternCentric');
 
+
 save(['..\application\stereoParams',num2str(camera_setup),'.mat'], 'stereoParams')
 filename = ['..\application\prosilica_cameras', num2str(camera_setup) ,'.txt'];
 saveStereoParameters(stereoParams, filename)
-
 %%
-%close all           
-clc
 
 R = stereoParams.CameraParameters1.RotationMatrices;
 T = stereoParams.CameraParameters1.TranslationVectors;                        
-xyzaer2rotm = @(x) ([eul2rotm(pi * [x(4) x(5) x(6)] / 180, 'ZYZ'), [x(1) x(2) x(3)]'; 0 0 0 1]);
-clear A Ai B;
 
-for i=1:size(R, 3)
-    A(:,:,i) = inv([R(:,:,i)', T(i,:)'; 0 0 0 1]);
-    Ai(:,:,i) = ([R(:,:,i)', T(i,:)'; 0 0 0 1]);
-    B(:,:,i) = xyzaer2rotm(DATA(i, :));
+
+if strcmp(experiment,'calibration7_March_10') 
+        
+    clear A Ai B;
+
+    for i=1:size(R, 3)
+        A(:,:,i) = inv([R(:,:,i)', T(i,:)'; 0 0 0 1]);
+        Ai(:,:,i) = ([R(:,:,i)', T(i,:)'; 0 0 0 1]);
+        [~,Bj] = FK_Comau(XYZABC(i, 1:6));
+        B(:,:,i) = inv(Bj);
+    end
+else
+
+    clc
+    xyzaer2rotm = @(x) ([eul2rotm(pi * [x(4) x(5) x(6)] / 180, 'ZYZ'), [x(1) x(2) x(3)]'; 0 0 0 1]);
+    clear A Ai B;
+
+    for i=1:size(R, 3)
+        A(:,:,i) = inv([R(:,:,i)', T(i,:)'; 0 0 0 1]);
+        Ai(:,:,i) = ([R(:,:,i)', T(i,:)'; 0 0 0 1]);
+        B(:,:,i) = xyzaer2rotm(DATA(i, :));
+    end
 end
-
 %plotRTs(A); title('Camera coords');
 %
 %plotRTs(B); title('Robot Hand Coords');

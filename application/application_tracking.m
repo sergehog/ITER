@@ -3,8 +3,18 @@ function application_tracking(hObject, eventdata, handles)
     if handles.mode ~= 4
         return;
     end
+    
+    % Main Parameters
+    WorstRejection = handles.sliderRej.Value;
+    threshG = 25*handles.sliderGrad.Value;
+    threshC = 50*handles.SliderColor.Value;    
+    thrPlane = 100*handles.sliderPlane.Value;    
+    weighted_sampling = 0.01;
+
+    
     stereoParams = handles.stereoParams;
-    %Image2 = getdata(hObject, 1);
+    [CL, CR] = getCMatrices(stereoParams);
+    
     h = handles.h;
     w = handles.w;
     Image1 = (getdata(handles.vid1, 1));
@@ -20,23 +30,9 @@ function application_tracking(hObject, eventdata, handles)
     flushdata(handles.vid1);
     flushdata(handles.vid2);
 
-    %Image1 = getsnapshot(handles.vid1);
-    %Image2 = getsnapshot(handles.vid2);
-
-
-    KL = stereoParams.CameraParameters1.IntrinsicMatrix';
-    KR = stereoParams.CameraParameters2.IntrinsicMatrix';
-    RT = [stereoParams.RotationOfCamera2', stereoParams.TranslationOfCamera2'];
-    CL = single(KL*[eye(3), [0 0 0]']);
-    CR = single(KR*RT);
     minZ = handles.minZ;
     maxZ = handles.maxZ;
     layers = handles.layers;
-    %threshG = 3;
-    %threshC = 30;
-    threshG = 5;
-    threshC = 30;    
-    weighted_sampling = 0.05;
     
     f = handles.f;
     v = handles.v;
@@ -44,12 +40,11 @@ function application_tracking(hObject, eventdata, handles)
     [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, weighted_sampling);
     
 
-    %figure(af); imshow(ZL, [minZ maxZ]); colormap(pink); title('Confident Left Depth'); drawnow;
     XYZl = backproject_Z(ZL, CL);
     XYZlm = median(XYZl); 
 
     [a, b, c] = find_major_plane(XYZl(:,1), XYZl(:,2), XYZl(:,3), 1000, 20);
-    thrPlane = 100;
+    
     Err = abs(XYZl(:,1).*a+XYZl(:,2).*b + c - XYZl(:,3));%    
     XYZl = XYZl(Err < thrPlane, :);    
 
@@ -79,32 +74,50 @@ function application_tracking(hObject, eventdata, handles)
         clear Z2x Mask;
     
     end
-        %
+    %
     XYZm = backproject_Z(Zx, CL);
-        
+    Pm = pointCloud(XYZm);    
+    Pm = pcdownsample(Pm, 'gridAverage', 4);
+    if Pm.Count > 2000
+        Pm = pcdownsample(Pm, 'random', 2000/Pm.Count);
+    end
+    XYZm = Pm.Location;
+    clear Pm;
+
 
     XYZm = XYZm(:,1:3);
     XYZl = XYZl(:,1:3);
 
     tic
-        [TR, TT, ~, ~] = icp2(XYZl', XYZm', 100, 'Verbose', true, 'WorstRejection', 0.2, 'Matching', 'kDtree');
+        %[TR, TT, ~, ~] = icp2(XYZl', XYZm', 100, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
+        [TR, TT, ~, ~] = icp2(XYZl', XYZm', 100, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
     toc
-    M = [TR, TT; [0 0 0 1]];
-
-    angles = rodrigues(TR);
-    handles.editX.String = num2str(TT(1));
-    handles.editY.String = num2str(TT(2));
-    handles.editZ.String = num2str(TT(3));
+    disp(num2str([TR, TT]));
+    M = Mnew*([TR, TT; [0 0 0 1]]);
+    %Mi = [TR, TT; [0 0 0 1]];
+    %M = inv(Mi);
+    handles.M = M;
+    % Frame of interest in the tool local coordinates
+    Pose = (handles.Tool)*(handles.X)*M*(handles.FrameOfInterest);
+        
+    translation = round(100*Pose(1:3,4))/100;
+    angles = round(100*180*rodrigues(Pose(1:3, 1:3))/pi)/100;    
     
-    handles.editAX.String = num2str(angles(1));
-    handles.editAY.String = num2str(angles(2));
-    handles.editAZ.String = num2str(angles(3));
+    handles.editX1.String = num2str(translation(1));
+    handles.editY1.String = num2str(translation(2));
+    handles.editZ1.String = num2str(translation(3));
+    
+    handles.editAX1.String = num2str(angles(1));
+    handles.editAY1.String = num2str(angles(2));
+    handles.editAZ1.String = num2str(angles(3));
+    
+    guidata(handles.editX1, handles);
     
     % Visualization
     light = 1000; % lumen (kinda lamp strength)
-    [~, Iz, ~] = render_CAD_model(f, v, CL, CR, M*Mnew, h, w, minZ, maxZ, 1/light);
+    [~, Iz, ~] = render_CAD_model(f, v, CL, CR, M, h, w, minZ, maxZ, 1/light);    
     Iz(isnan(Iz)) = 0;
-    Iz(Iz > 1) = 1;
+    Iz = Iz./max(Iz(:));    
     Iv = L/255;
     Iv(:,:,3) = Iz(:,:,1);
     Iv(:,:,2) = (L/255 + Iz(:,:,1))/2;
@@ -116,13 +129,16 @@ function application_tracking(hObject, eventdata, handles)
     axis off;
 
     XYZm(:,4) = 1;
-    XYZm = XYZm*M';
+    XYZm = ((inv(Mnew)*M)*XYZm')';
     
     axes(handles.axes2);    
-    scatter3(-XYZl(:,1), XYZl(:,3), XYZl(:,2), '.', 'r');
+    cla
+    %scatter3(XYZl(:,1), XYZl(:,2), XYZl(:,3), '.', 'r');
+    scatter(XYZl(:,1), XYZl(:,2), '.', 'r');
     hold on
-    scatter3(-XYZm(:,1), XYZm(:,3), XYZm(:,2), '.', 'b');
-    xlim([-500 500]);
+    %scatter3(XYZm(:,1), XYZm(:,2), XYZm(:,3), '.', 'b');
+    scatter(XYZm(:,1), XYZm(:,2), '.', 'b');
+    %xlim([-500 500]);
     axis equal    
     drawnow;    
     axis off;

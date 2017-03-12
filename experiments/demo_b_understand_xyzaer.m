@@ -56,3 +56,22 @@ for i=1:size(DATA, 1)
     disp(180*rodrigues(B(1:3,1:3,i))'/pi);
 end
 plotRTs(B, 300); title('Robot Hand Coords');
+
+%%
+close all
+clear 
+clc
+
+experiment = 'bbbb';
+load(['images\',experiment,'\XYZABC.mat']);
+
+%%
+XYZABC(:,1:3) = XYZABC(:,1:3)/1000;
+%%
+clear B;
+for i=2:size(XYZABC, 1)
+    %B(:,:,i-1) = (xyzabc2rtmat(XYZABC(i, :)));
+    [xyz, DH] = FK_Comau ( XYZABC(i, 1:6));
+    B(:,:,i-1) = DH;
+end
+plotRTs(B, 300); title('Robot Hand Coords');

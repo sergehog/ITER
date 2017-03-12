@@ -1,3 +1,21 @@
+// tool #1 desired point
+//color("black")
+//{
+//translate([140, 130, -40])
+//cylinder(h=100, r1=10, r2=1, center=false);
+//}
+
+// tool #2 desired point
+//color("black")
+//{
+//translate([-80, 250, -40]) rotate([0, 0, 20])
+//{
+//	cylinder(h=100, r1=10, r2=1, center=false);
+//	rotate([0, 90, 0]) 	cylinder(h=100, r1=10, r2=1, center=false);
+//	rotate([-90, 0, 0]) 	cylinder(h=100, r1=10, r2=1, center=false);
+//}
+//}
+
 rotate([0, 0, -90])
 translate([0,-250,45])
 {

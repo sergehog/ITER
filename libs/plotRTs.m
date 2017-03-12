@@ -38,6 +38,8 @@ end
     O = [0 0 0; 100 0 0; 0 0 0; 0 100 0; 0 0 0; 0 0 100];
     plot3(O(:, 1), O(:, 2), O(:, 3), 'k');
     axis equal
+    %a = axes(f);
+    %set(a,'YDir','reverse');
     %set(a,'XAxisLocation','top','YAxisLocation', 'left','YDir','reverse');
         
     %xlim([0 max(RTs(1, 4, :), [],3)])

@@ -3,7 +3,7 @@ function application_video(hObject, eventdata, figHandle)
     
     
     handles = guidata(figHandle);
-    disp(handles)
+    %disp(handles)
     if handles.mode ~= 5
         disp('wrong mode');
         return;
@@ -32,6 +32,30 @@ function application_video(hObject, eventdata, figHandle)
         filename2 = [handles.imageDir,'/2_', num2str(handles.images),'.png'];
         imwrite(uint8(Image1), filename1, 'png');
         imwrite(uint8(Image2), filename2, 'png');        
+        
+        %packet = step(handles.hudpr);
+        
+        %disp(num2str(packet'));
+        hudpr = dsp.UDPReceiver('LocalIPPort',35001,'ReceiveBufferSize', 100);
+        setup(hudpr);
+        dataReceived = [1];
+        % remove all UDP packets from the buffer
+        while (numel(dataReceived) > 0)
+            dataReceived = step(hudpr);
+        end  
+        % now get one correct
+        %while (numel(dataReceived) ~= 48)
+        while (numel(dataReceived) ~= 80)
+            dataReceived = step(hudpr);            
+        end 
+        release(hudpr);
+        XYZABC = typecast(dataReceived, 'double')';
+        handles.XYZABC(handles.images, :) = XYZABC;
+        
+        disp(['UDP recieved: ', num2str(XYZABC)]);   
+        
+        XYZABC = handles.XYZABC;
+        save([handles.imageDir,'/XYZABC.mat'], 'XYZABC');
         handles.images = handles.images + 1;        
     end
     
