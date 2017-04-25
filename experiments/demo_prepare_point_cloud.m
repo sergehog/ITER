@@ -10,79 +10,111 @@ load(['../application/stereoParams',num2str(camera_setup),'.mat']);
 
 w = 960;
 h = 540;
-%
-%filename = '..\STL\Knuckle_cut_to_size2.stl'; 
-filename = '..\STL\knuckle+Cassete.stl'; 
-RTmat = [eye(3), [0 0 0]'; 0 0 0 1];
+
+% 1. select CAD model to sample
+
+%filename = '..\STL\Knuckle_cut_to_size2.stl
+%filename = '..\STL\knuckle+Cassete.stl'; 
+filename = '..\STL\mockup3.stl'; 
+
+% Initial transform of a model (better to be transformed right in the STL file)
+RTmat = [eye(3), [0 0 0]'; 0 0 0 1]; 
 [f, v] = load_CAD_model(filename, RTmat);
-light = 600;
-%%
+
+
+M = [rodrigues([0 0 0]), [0 0 500]'; 0 0 0 1];
+[Zm, Im, ~] = render_CAD_model(f, v, CL, CR, M, h, w, 0, 0, 1/1000, 0);
+figure; imshow(Zm, [min(Zm(:))*0.8 max(Zm(:))*1.2]); colormap(gca, pink); title('Current Model ');
+
+% one can re-align STL from MATLAB and re-save 
+%[v, f, ~, ~, ~] = stlread('..\STL\mockup2.stl', true);
+%f = uint64(f);
+%v = single(v);
+%%v = v * 1000; % convert meters to mm
+%v = v*(rodrigues([0 0 pi/2]))' + repmat([-200 0 0], [size(v, 1) 1]);
+%stlwrite('..\STL\mockup3.stl', f, v);
+
+
+%% 2. Here we select one or more view-points for model sampling 
 close all
-clc
-XYZ = [];
-%%
 
-minZ = 200;
-maxZ = 2000;
-M = [1 0 0 0;
-     0 1 0 0;
-     0 0 1 600;
-     0 0 0 1];
-CL2 = [CL*M];     
-CL2 = CL2(1:3, :);
-[Z, I, ~] = render_CAD_model(f, v, CL2, 0, eye(4), h, w, minZ, maxZ, 1/light, 0);
-figure; imshow(Z, [400 600]); colormap(gca, pink)
+M1 = rodrigues([-0.1 0 0])*[0.9*eye(3), [700 300 1000]'];
+M2 = rodrigues([0.1 0 0])*[0.9*eye(3), [300 300 1000]'];
+M3 = rodrigues([0 0.1 0])*[0.9*eye(3), [500 300 1000]'];
 
-I = I(:,:,1);
-I(isnan(I)) = 0;
-I = 255 * I / max(I(:));
-figure; imshow(uint8(I), [0 255]); 
-[Ix Iy] = gradient(I);
-Ig = abs(Ix) + abs(Iy);
-%figure; imshow(Ig, [0 1])
-%%
-Z(isnan(Z)) = 0;
-[Zx, Zy] = gradient(Z);
-[Zxx, Zxy] = gradient(Zx);
-[Zyx, Zyy] = gradient(Zy);
+[XYZ1m, NV1s, Z1, NV1] = sampleCADmodel(f, (v), M1, h, w, 1, 1);
+[XYZ2m, NV2s, Z2, NV2] = sampleCADmodel(f, (v), M2, h, w, 1, 1);
+[XYZ3m, NV3s, Z3, NV3] = sampleCADmodel(f, (v), M3, h, w, 1, 1);
+figure; imshow((NV1+1)/2); title('Surface normals from veiw 1');
+figure; imshow((NV2+1)/2); title('Surface normals from veiw 2');
+figure; imshow((NV3+1)/2); title('Surface normals from veiw 3');
+
+
+%figure; imshow(Z1, [])
+%figure; imshow(Z2, [])
+%figure; imshow(Z3, [])
+
+
+%% 3. Preparing well-sampled point-cloud
+% Collecting all points in one array
+XYZm = [XYZ1m; XYZ2m; XYZ3m]; % points 
+NVs = [NV1s; NV2s; NV3s]; % normals 
+clear XYZ1m XYZ2m XYZ3m NV1s NV2s NV3s
+
+% filter out too distant points
+NVs = NVs(find(XYZm(:,3) < 200), :); 
+XYZm = XYZm(find(XYZm(:,3) < 200), :); 
+
+% filter out too close (to each other)
+P = pointCloud(XYZm, 'Normal', NVs);
+P = pcdownsample(P, 'gridAverage', 5);
+XYZm = P.Location;
+NVs = P.Normal;
+clear P;
+
+%figure; scatter3(XYZm(:,1),XYZm(:,3),XYZm(:,2), 1, (NVs+1)/2); 
+%set(gca, 'ZDir', 'reverse');
+%%set(gca, 'XDir', 'reverse');
+%xlabel('x'); ylabel('z'); zlabel('y')
+%axis equal
+%title('Model Point Cloud');
+
+%% find boundary points 
+tic
+IND = knnsearch(XYZm,XYZm,'K', 5);
+toc
 %
-%G = (abs(Zx) + abs(Zy)) > 3;
-G = (abs(Zxx) + abs(Zxy) + abs(Zyy)) > 1;
-figure; imshow(G, [])
-Z2 = Z;
-%Z2(rand(size(Z2)) .* (1+abs(Zx) + abs(Zy)) < 1) = nan;
-Z2(rand(size(Z2)) > 0.001) = nan;
-Z2(G) = Z(G);
-%Z2(Ig > 1) = Z(Ig > 1);
-Z2(Z == 0) = nan;
 
-figure; imshow(Z2, [200 2000]); colormap(gca, pink); title('Sampled Depth');
-%%
-XYZm = backproject_Z(Z2, CL2);
-XYZm = XYZm(find(XYZm(:,3) < 20), :);
+sz = size(IND,1)
+prob = zeros([sz 1]);
+for i=1:sz
+    prob(i) = norm(var(NVs(IND(i,:), :))) > 0;
+end
+%% boundary points are left with 0.3 probability, others with 0.05 
+selected = rand(size(prob)) < (prob*0.2 + 0.02);
+XYZ = XYZm(selected, :);
+NV = NVs(selected, :);
 
-%
-%XYZ = [XYZ; XYZl];
-%
-figure; scatter3(XYZm(:,1), XYZm(:,2), XYZm(:,3), '.', 'b'); 
+figure; scatter3(XYZ(:,1),XYZ(:,3),XYZ(:,2), 1, (NV+1)/2); 
 set(gca, 'ZDir', 'reverse');
-xlabel('x'); ylabel('y'); zlabel('z')
+%set(gca, 'XDir', 'reverse');
+xlabel('x'); ylabel('z'); zlabel('y')
 axis equal
-%%
-%savepcd('points.txt', XYZ');
+title('Model Point Cloud');
+
+%% Finally randomly select fixed number of points 
+
 P = pointCloud(XYZm);
-P = pcdownsample(P, 'gridAverage', 4);
-P = pcdownsample(P, 'random', 2000/P.Count);
-figure; scatter3(P.Location(:,1), P.Location(:,2), P.Location(:,3), '.', 'b'); axis equal
+P = pcdownsample(P, 'random', 3000/P.Count);
+
+figure; 
+scatter3(P.Location(:,1), P.Location(:,3), P.Location(:,2), '.', 'b'); 
+axis equal
 set(gca, 'ZDir', 'reverse');
-xlabel('x'); ylabel('y'); zlabel('z')
+xlabel('x'); ylabel('z'); zlabel('y')
 
-%pcwrite(P,'points.ply','PLYFormat','binary');
-%%
-save3DPoints('pointsK+C.bin', P.Location)
+%save3DPoints('..\STL\mockup2.bin', P.Location)
+%save3DPoints('..\STL\knuckle+Cassete_1000.bin', P.Location)
 
-    
-%
-%P2 = pcread('points2.ply');
-%figure(); scatter3(P2.Location(:,1), P2.Location(:,2), P2.Location(:,3), '.', 'b'); axis equal
+
 

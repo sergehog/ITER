@@ -5,6 +5,7 @@ end
 if nargin < 11
     adaptive_theshold = 0;
 end
+radius = 4;
 
 [Lx, Ly] = gradient(L);
 [Rx, Ry] = gradient(R);
@@ -26,23 +27,25 @@ maxZ2 = maxZ*1.5; % increase actual Z-range in order to properly threshould out 
 %ZR = AR(:,:,1).*X + AR(:,:,2).*Y + AR(:,:,3);
 
 %tic
-%sigma = 0.02;
-%alpha = 0.77;
+%sigma = 0.1;
+%alpha = 0.8;
+
 %layers = 400;
 [CostL] = depth_estimation(minZ, maxZ2, layers, L2, CL, R2, CR);
+CostL(CostL > 20) = 20;
 %CostLf = recursive_bilateral(CostL, L, sigma, alpha);
 %CostLf = recursive_gaussian(CostL, alpha);
-CostL(CostL > 20) = 20;
-CostLf = fast_average(CostL, 5);
+CostLf = fast_average(CostL, radius);
 clear CostL
 DispL = wta_simple(CostLf, 0, 1);
 clear CostLf
 %figure; imshow(DispL, [0 layers]); colormap(pink); title('Raw Depth');
 [CostR] = depth_estimation(minZ, maxZ2, layers, R2, CR, L2, CL);
+CostR(CostR > 20) = 20;
 %CostRf = recursive_bilateral(CostR, R, sigma, alpha);
 %CostRf = recursive_gaussian(CostR, alpha);
-CostR(CostR > 20) = 20;
-CostRf = fast_average(CostR, 5);
+CostRf = fast_average(CostR, radius);
+
 clear CostR
 DispR = wta_simple(CostRf, 0, 1);
 clear CostRf
@@ -57,7 +60,7 @@ clear mex
 ZL = 1 ./ ((DispL / layers)*(1/minZ - 1/maxZ2) + 1/maxZ2);
 ZR = 1 ./ ((DispR / layers)*(1/minZ - 1/maxZ2) + 1/maxZ2);
 %figure; imshow(EL, [0 10]); colormap(jet)
-
+%figure; imshow(ZL, [min(ZL(:))*0.8 max(ZL(:))*1.2]); title('Estimated Dense Depth'); colormap(gca, pink)
 [ValidL, ValidR] = left2right(ZL, CL, ZR, CR, 5, minZ, maxZ2);
 %[ValidL, ValidR] = ltr_planar(AL, AR, 10, 10);
 ZL(~ValidL) = nan;
@@ -65,7 +68,9 @@ ZR(~ValidR) = nan;
 ZL(ZL > maxZ) = nan;
 ZR(ZR > maxZ) = nan;
 
-%figure; imshow(ZL, [minZ maxZ]); colormap(pink); title('Estimated Depth Map');
+
+
+%figure; imshow(ZL, [minZ maxZ]); colormap(gca, pink); title('Estimated Depth Map');
 
 if adaptive_theshold>0
     La = fast_average(L, 20);
@@ -86,5 +91,5 @@ end
 
 ZL(L < threshC) = nan;
 ZR(R < threshC) = nan;
-ZL(L >= 255) = nan;
-ZR(R >= 255) = nan;
+ZL(L >= 254) = nan;
+ZR(R >= 254) = nan;

@@ -5,12 +5,18 @@ clc
 addpath(genpath('..\libs'));
 
 camera_setup = 2;
+save_results = 0;
 
 %experiment = 'calibration4'; 
 %experiment = 'calibration5';
 %experiment = 'calib6';
-%experiment = 'calib6';
-experiment = 'calibration7_March_10'
+
+%experiment = '16-Mar-2017-957507';
+%experiment = '16-Mar-2017-970593';
+experiment = '17-Mar-2017-126987';
+
+xyzaer2rotm = @(x) ([eul2rotm(pi * [x(4) x(5) x(6)] / 180, 'ZYZ'), [x(1) x(2) x(3)]'; 0 0 0 1]);
+prefix = 'images\calibration\';
 
 if strcmp(experiment,'calibration4') 
     frames = [1, 3:10];
@@ -63,14 +69,43 @@ elseif strcmp(experiment,'calib6')
     1219.551 -1504.386 640.287 -52.566 131.826 42.707;
     1107.319 -1407.522 618.910 -63.222 127.380 28.420;
     1108.616 -1397.362 608.796 -60.708 131.686 58.227;
-    1130.112 -1253.362 535.608 -60.843 118.000 43.132;
+    1130.112 -1253.362 535.608 -60.843 118.000 43.132; 
     1173.636 -1283.687 584.092 -57.393 123.998 45.974;
 ];
-elseif strcmp(experiment,'calibration7_March_10') 
+elseif strcmp(experiment,'16-Mar-2017-97540') 
     load(['images\calibration\', experiment, '\XYZABC.mat']);
-    frames = 1:size(XYZABC, 1);
+    frames = [1:11];
+    DATA = XYZABC(frames, :); 
+    DATA2 = DATA; 
+    DATA2(1,4:6) = [-43.841 137.098 21.807];
+    DATA2(2,4:6) = [-53.343 137.716 29.209];
+    DATA2(3,4:6) = [-50.156 140.110 26.803];
+    DATA2(4,4:6) = [-37.554 139.546 20.243];
+    DATA2(5,4:6) = [-27.381 138.899 8.068];
+    DATA2(6,4:6) = [-25.844 143.831 9.165];
+    DATA2(7,4:6) = [-24.735 146.886 5.525];
+    DATA2(8,4:6) = [-24.733 142.954 5.528];
+    DATA2(9,4:6) = [-32.579 142.955 8.918];    
+    DATA2(10,4:6) = [-14.630 139.370 -4.222];
+    DATA2(11,4:6) = [-20.154 139.368 -4.222];    
+    
+elseif strcmp(experiment,'17-Mar-2017-126987') 
+    frames = [1 10 11 12 16 17 18 19 2 20 23 24 25 3 34 4 45 46 48 49 5 55 56];
+    xyzaer2rotm = @(x) ([angle2dcm( deg2rad(x(6)), deg2rad(x(5)),deg2rad(x(4)) ,'XYZ')', [x(1) x(2) x(3)]'; 0 0 0 1]);
+    prefix = '..\application\images\';
+    load([prefix, experiment, '\XYZABC.mat']);
+    DATA = XYZABC(frames, :); 
+else    
+    xyzaer2rotm = @(x) ([angle2dcm( deg2rad(x(6)), deg2rad(x(5)),deg2rad(x(4)) ,'XYZ')', [x(1) x(2) x(3)]'; 0 0 0 1]);
+    
+    prefix = '..\application\images\';
+    load([prefix, experiment, '\XYZABC.mat']);
+    
+    %frames = 1:(size(XYZABC, 1));
+    frames = randperm(size(XYZABC,1));
+    frames = frames(1:40);
+    DATA = XYZABC(frames, :); 
 end
-
 
 %% Hand2eye Calibration
 clc
@@ -78,13 +113,14 @@ imageFileNames1 = {};
 imageFileNames2 = {};
 
 for i=1:numel(frames)
-    imageFileNames1{i} = ['images\calibration\',experiment,'\1_', num2str(frames(i)),'.png'];
-    imageFileNames2{i} = ['images\calibration\',experiment,'\2_', num2str(frames(i)),'.png'];    
+    imageFileNames1{i} = [prefix, experiment,'\1_', num2str(frames(i)),'.png'];
+    imageFileNames2{i} = [prefix, experiment,'\2_', num2str(frames(i)),'.png'];    
 end
 
 [imagePoints, boardSize, used] = detectCheckerboardPoints(imageFileNames1, imageFileNames2);
 disp(['boardSize = ', num2str(boardSize)]);   
-
+DATA = DATA(used, :);
+%DATA2 = DATA2(used, :);
 squareSize = 25;  % in units of 'mm'
 worldPoints = generateCheckerboardPoints(boardSize, squareSize);
 
@@ -92,17 +128,18 @@ worldPoints = generateCheckerboardPoints(boardSize, squareSize);
 [stereoParams, pairsUsed, estimationErrors] = estimateCameraParameters(imagePoints, worldPoints, ...
 'EstimateSkew', false, 'EstimateTangentialDistortion', false, ...
 'NumRadialDistortionCoefficients', 2, 'WorldUnits', 'mm');
-
+DATA = DATA(pairsUsed, :);
 %figure;
 %showExtrinsics(stereoParams, 'CameraCentric');
 
 figure;
 showExtrinsics(stereoParams.CameraParameters2, 'PatternCentric');
 
-
-save(['..\application\stereoParams',num2str(camera_setup),'.mat'], 'stereoParams')
-filename = ['..\application\prosilica_cameras', num2str(camera_setup) ,'.txt'];
-saveStereoParameters(stereoParams, filename)
+if save_results > 0
+    save(['..\application\stereoParams',num2str(camera_setup),'.mat'], 'stereoParams')
+    filename = ['..\application\prosilica_cameras', num2str(camera_setup) ,'.txt'];
+    saveStereoParameters(stereoParams, filename)
+end
 %%
 
 R = stereoParams.CameraParameters1.RotationMatrices;
@@ -113,7 +150,7 @@ if strcmp(experiment,'calibration7_March_10')
         
     clear A Ai B;
 
-    for i=1:size(R, 3)
+    for i=1:(size(R, 3)-1)
         A(:,:,i) = inv([R(:,:,i)', T(i,:)'; 0 0 0 1]);
         Ai(:,:,i) = ([R(:,:,i)', T(i,:)'; 0 0 0 1]);
         [~,Bj] = FK_Comau(XYZABC(i, 1:6));
@@ -122,71 +159,89 @@ if strcmp(experiment,'calibration7_March_10')
 else
 
     clc
-    xyzaer2rotm = @(x) ([eul2rotm(pi * [x(4) x(5) x(6)] / 180, 'ZYZ'), [x(1) x(2) x(3)]'; 0 0 0 1]);
+    
     clear A Ai B;
-
+    
     for i=1:size(R, 3)
         A(:,:,i) = inv([R(:,:,i)', T(i,:)'; 0 0 0 1]);
         Ai(:,:,i) = ([R(:,:,i)', T(i,:)'; 0 0 0 1]);
         B(:,:,i) = xyzaer2rotm(DATA(i, :));
     end
 end
-%plotRTs(A); title('Camera coords');
+%plotRTs(A, 100); title('Camera coords');
 %
-%plotRTs(B); title('Robot Hand Coords');
+%plotRTs(B, 100); title('Robot Hand Coords');
 
 X = hand2Eye(B, A);
 [X2, ~] = TSAIleastSquareCalibration(B, Ai);
 [X3, ~] = hand_eye_dual_quaternion(B, Ai);
 
+rtmat2xyzaer = @(x) [x(1:3, 4)' , 180/pi*rodrigues(x(1:3, 1:3))'];
+disp(experiment);
 disp('Implementation 1 & 2 & 3');
-disp(num2str([X(1:3, 4)' , 180/pi*rodrigues(X(1:3, 1:3))']));
-disp(num2str([X2(1:3, 4)' , 180/pi*rodrigues(X2(1:3, 1:3))']));
-disp(num2str([X3(1:3, 4)' , 180/pi*rodrigues(X3(1:3, 1:3))']));
+disp(num2str(rtmat2xyzaer(X)));
+disp(num2str(rtmat2xyzaer(X2)));
+disp(num2str(rtmat2xyzaer(X3)));
+if save_results > 0
+    save(['..\application\hand2Eye',num2str(camera_setup),'.mat'], 'X', 'X2', 'X3');
+end
+% Measure error of each approach
 
+E1 = [0 0 0 0 0 0];
+E2 = [0 0 0 0 0 0];
+E3 = [0 0 0 0 0 0];
+e1 = 0;e2 = 0; e3 = 0;
 
-CC = [0 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 0];
-CC2 = CC;
-for i=1:size(R,3)-1
+for i=1:size(R,3)
     A1 = A(:,:,i);
-    A2 = A(:,:,i+1);
-
     B1 = B(:,:,i);
-    B2 = B(:,:,i+1);
+    
+    for j=1:size(R,3)
+        if i==j
+            continue;
+        end
+        A2 = A(:,:,j);    
+        B2 = B(:,:,j);
 
-    BB = inv(B2)*B1*X;
-    AA = X*inv(A2)*A1;
+        BB1 = inv(B2)*B1*X;
+        AA1 = X*inv(A2)*A1;
+        
+
+        E = (rtmat2xyzaer(BB1) - rtmat2xyzaer(AA1)).^2;
+        e1 = e1 + sqrt(sum(E(1:3)));
+        E1 = E1 + E;
+                   
+        BB2 = inv(B2)*B1*X2;
+        AA2 = X2*inv(A2)*A1;
+        E = (rtmat2xyzaer(BB2) - rtmat2xyzaer(AA2)).^2;
+        e2 = e2 + sqrt(sum(E(1:3)));
+        E2 = E2 + E;
     
-    CC = CC + (BB-AA).^2;
-    %disp(num2str([BB-AA]));
     
-    BB2 = inv(B2)*B1*X2;
-    AA2 = X2*inv(A2)*A1;
+        BB3 = inv(B2)*B1*X3;
+        AA3 = X3*inv(A2)*A1;    
+        E = (rtmat2xyzaer(BB3) - rtmat2xyzaer(AA3)).^2;
+        e3 = e3 + sqrt(sum(E(1:3)));
+        E3 = E3 + E;
+    end
     
-    CC2 = CC2 + (BB2-AA2).^2;
+    
+    
 end
-CC = sqrt(CC)./(size(R,3)-1);
-CC2 = sqrt(CC2)./(size(R,3)-1);
-disp('Average Error 1 & 2');
-disp(num2str(CC(1:3, 4)' ));
-disp(num2str(CC2(1:3, 4)'));
+e1 = e1/(size(R,3)*(size(R,3) - 1));
+e2 = e2/(size(R,3)*(size(R,3) - 1));
+e3 = e3/(size(R,3)*(size(R,3) - 1));
 
-save(['..\application\hand2Eye',num2str(camera_setup),'.mat'], 'X', 'X2', 'X3');
+disp(['reprojection errors (mm): ', num2str(e1), ', ', num2str(e2), ', ', num2str(e3)]);
 
-%%
-experiment = 'calibration3';
-clc
-DATA = [1796.259 -988.560 835.209 27.493 111.587 23.788;
-1781.146 -1015.539 835.177 26.629 111.588 23.789;
-1765.625 -1042.294 835.216 25.764 111.588 23.787;
-1723.389 -1110.739 835.203 23.517 111.588 23.787;
-1660.529 -1202.687 835.207 20.403 111.587 23.788;
-1660.537 -1202.677 835.197 20.403 111.587 11.950;
-1660.533 -1202.679 835.235 20.403 111.587 5.372];
-xyzaer2rotm = @(x) ([eul2rotm(pi * [x(4) x(5) x(6)] / 180, 'ZYZ'), [x(1) x(2) x(3)]'; 0 0 0 1]);        
-clear B;
-for i=1:7
-    B(:,:,i) = xyzaer2rotm(DATA(i, :));
-    disp(180*rodrigues(B(1:3,1:3,i))'/pi);
-end
-plotRTs(B); title('Robot Hand Coords');
+%E1 = sqrt(E1)./(size(R,3)*(size(R,3) - 1));
+%E2 = sqrt(E2)./(size(R,3)*(size(R,3) - 1));
+%E3 = sqrt(E3)./(size(R,3)*(size(R,3) - 1));
+% 
+%disp('Average Error 1 & 2 & 3');
+%disp(num2str(E1));
+%disp(num2str(E2));
+%disp(num2str(E3));
+
+
+

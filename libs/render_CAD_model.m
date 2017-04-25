@@ -1,54 +1,65 @@
-function [Zq, Iq, Nq] = render_CAD_model(f, v, CL, CR, M, h, w, minZ, maxZ, aaa, doLeft2right)
-if nargin < 10
-    aaa = 0.001;
+function [Zq, Iq, Nq] = render_CAD_model(f, v, CL, CR, M, h, w, light, doLeft2right)
+if nargin < 8
+    light = 1000;
 end
-if nargin < 11
-    doLeft2right = 1;
+if nargin < 9
+    doLeft2right = 0;
 end
-
 
 
 CLm = CL*M;
-%Cini = CL * M*Tini*Rini;
-%Cini = CL*M*pinv(CL)*Cini;
-% New Rendering with normals
+
+
 v2 = v;
 v2(:,4) = 1;
 v2 = v2*(CLm)';
 v2(:,1) = v2(:,1)./v2(:,3);
 v2(:,2) = v2(:,2)./v2(:,3);
-[NF, NV] = estimate_normals(f, v);
-%L = v./repmat(sqrt(v(:,1).^2 + v(:,2).^2 + v(:,3).^2), [1 3]);
+
+% Rendering with phong reflection - coloring
+[~, NV] = estimate_normals(f, v); 
+
+
+% prepare RGB color attributes for each vertex
 C = zeros(size(NV));
+% location of a light source (we use ring-light)
+light_sourse = [0 0 0]; 
 
 for i=1:size(v, 1)
-    a = v2(i,:); % 'a' is location of a light source  
-    %a(1) = a(1) + 1000; 
-    b = abs(NV(i,:));
-    C(i, 1) = ((dot(a(:), b(:))./(norm(a)*norm(b))))/((aaa*norm(a))^2);
+    normal = -(NV(i,:));
+    normal = normal/norm(normal);    
+    light_dir = v2(i,:)-light_sourse;     
+    light_dir = light_dir/norm(light_dir);
     
-    %sqrt()/1000;
+    lambertian = max(dot(light_dir,normal), 0.0);
+    diffuse = 0.1;
+    color = max(diffuse,lambertian);
+    color = color^1.2;
+    C(i, 1) = min(1,max(0, color));
+    
+    %b = NV(i,:);
+    %C(i, 1) = ((dot(light_dir(:), b(:))./(norm(light_dir)*norm(b))))/(1/light*(norm(light_dir))^2);    
 end
+
+%for i=1:size(v, 1)
+%    a = v2(i,:) - light_sourse;     
+%    b = abs(NV(i,:));
+%    %b = NV(i,:);
+%    C(i, 1) = ((dot(a(:), b(:))./(norm(a)*norm(b))))/(1/light*(norm(a))^2) + 0.1;    
+%end
+
 C(:,2) = C(:,1);
 C(:,3) = C(:,1);
-C = C;
 
 [Iq, Zq] = triangle_rasterization(f, v2, w, h, single(C), reshape([0 0 0], [1 1 3]));
 [Nq, ~] = triangle_rasterization(f, v2, w, h, single(NV), reshape([0 0 0], [1 1 3]));
 clear mex
-%figure; imshow(Zq, [minZ maxZ]); colormap(pink); title('Rendered Depth');
-%figure; imshow(abs(Iq));
-%Iq(isnan(Iq)) = 0;
-%[Ix, Iy] = gradient(Iq);
-%Mask = sum(abs(Ix)+abs(Iy), 3) > 0.1;
-%Zx = Zq;
-%Zx(~Mask) = nan;
-%figure; imshow(Mask); 
+
 %% Remove Occluded Parts
-%CRini = CR*Tini*Rini;
+
 if  doLeft2right > 0
     CRm = CR*M;
-    % New Rendering with normals
+    
     v2 = v;
     v2(:,4) = 1;
     v2 = v2*(CRm)';
@@ -56,10 +67,9 @@ if  doLeft2right > 0
     v2(:,2) = v2(:,2)./v2(:,3);
     [~, ZRq] = triangle_rasterization(f, v2, w, h, v2(:,1:2)*0, reshape([0 0 0], [1 1 3]));
     clear mex
-    [ValidLq, ValidRq] = left2right(Zq, CL, ZRq, CR, 5, minZ, maxZ);
-    %figure; imshow(ValidLq); 
-    %figure; imshow(ZRq, [minZ threshZ]); colormap(pink); title('Right Depth');
-    Zq(~ValidLq) = nan;
-    %Zx(isnan(ZL)) = nan;
-    %figure; imshow(Zx, [minZ maxZ]); colormap(pink); title('Model Depth Invisibles removed');
+    minZ = min(Zq(:));
+    maxZ = max(Zq(:));
+    [ValidLq, ~] = left2right(Zq, CL, ZRq, CR, 5, minZ, maxZ);
+    
+    Zq(~ValidLq) = nan;    
 end

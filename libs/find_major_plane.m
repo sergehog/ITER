@@ -38,12 +38,18 @@ clear y;
         end          
     end
     
-    %E = abs(x*bestA - z);
-    %bestPix = sum(E<thr);
+    
+    E = abs(x*bestA - z);
+    bestPix = sum(E<thr);
+    X = x(find(E<thr), :);
+    Z = z(find(E<thr));
+    
+    bestA = X \ Z;
     %Ps(k) = bestPix;
     aa = bestA(1);
     bb = bestA(2);
     cc = bestA(3);
+    
     
    % x = x(find(E>=thr), :);    
    % z = z(find(E>=thr));

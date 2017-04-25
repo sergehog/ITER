@@ -9,22 +9,27 @@ function application_tracking(hObject, eventdata, handles)
     threshG = 25*handles.sliderGrad.Value;
     threshC = 50*handles.SliderColor.Value;    
     thrPlane = 100*handles.sliderPlane.Value;    
-    weighted_sampling = 0.01;
-
+    robust_sampling = 0.01;
+    adaptive_thr = 0;
+    
     
     stereoParams = handles.stereoParams;
     [CL, CR] = getCMatrices(stereoParams);
     
     h = handles.h;
     w = handles.w;
-    Image1 = (getdata(handles.vid1, 1));
-    Image1 = imresize(Image1, [h w], 'bicubic');
+    
+    Image1 = (getdata(handles.vid1, 1));    
     Image2 = (getdata(handles.vid2, 1));
-    Image2 = imresize(Image2, [h w], 'bicubic');
+    
+    if size(Image1,1) ~= h
+        Image1 = imresize(Image1, [h w], 'bicubic');
+        Image2 = imresize(Image2, [h w], 'bicubic');
+    end
     L = single(undistortImage(Image1, stereoParams.CameraParameters1));
     R = single(undistortImage(Image2, stereoParams.CameraParameters2));
-    L = imresize(mean(L, 3), [h w]);
-    R = imresize(mean(R, 3), [h w]);
+    L = mean(L, 3);
+    R = mean(R, 3);
     R = mean(L(:))*R./mean(R(:));
 
     flushdata(handles.vid1);
@@ -37,63 +42,9 @@ function application_tracking(hObject, eventdata, handles)
     f = handles.f;
     v = handles.v;
         
-    [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, weighted_sampling);
+    [M, ZL] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, thrPosPlane, WorstRejection, thrNegPlane);
     
-
-    XYZl = backproject_Z(ZL, CL);
-    XYZlm = median(XYZl); 
-
-    [a, b, c] = find_major_plane(XYZl(:,1), XYZl(:,2), XYZl(:,3), 1000, 20);
     
-    Err = abs(XYZl(:,1).*a+XYZl(:,2).*b + c - XYZl(:,3));%    
-    XYZl = XYZl(Err < thrPlane, :);    
-
-    Rini = rodrigues([atan(b), -atan(a), 0]);       
-    Tini = [1 0 0 XYZlm(1); 0 1 0 XYZlm(2); 0 0 1 XYZlm(3); 0 0 0 1];
-    Mnew = Tini*[Rini, [0 0 0]'; 0 0 0 1];
-
-    light = 1000;
-    [Zx, Ix, ~] = render_CAD_model(f, v, CL, CR, Mnew, h, w, minZ, maxZ, 1/light, 1);
-    Zx(Zx > maxZ) = nan;
-    Ix = uint8(Ix(:,:,1)*255);
-    Zx(Ix < threshC) = nan;
-        
-
-    if weighted_sampling > 0
-        Ix(isnan(Ix)) = 0;
-        Ix(Ix > 255) = 255;
-        [Lx, Ly] = gradient(single(Ix));
-        Ig = sqrt(Lx.^2 + Ly.^2);
-        clear Lx Ly;
-        Mask = imdilate(Ig>=threshG, [1 1 1; 1 1 1; 1 1 1]);
-
-        Z2x = Zx;
-        Z2x(rand(size(Z2x)) > weighted_sampling) = nan;
-        Zx(~Mask) = nan;
-        Zx(~isnan(Z2x)) = Z2x(~isnan(Z2x));
-        clear Z2x Mask;
-    
-    end
-    %
-    XYZm = backproject_Z(Zx, CL);
-    Pm = pointCloud(XYZm);    
-    Pm = pcdownsample(Pm, 'gridAverage', 4);
-    if Pm.Count > 2000
-        Pm = pcdownsample(Pm, 'random', 2000/Pm.Count);
-    end
-    XYZm = Pm.Location;
-    clear Pm;
-
-
-    XYZm = XYZm(:,1:3);
-    XYZl = XYZl(:,1:3);
-
-    tic
-        %[TR, TT, ~, ~] = icp2(XYZl', XYZm', 100, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
-        [TR, TT, ~, ~] = icp2(XYZl', XYZm', 100, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
-    toc
-    disp(num2str([TR, TT]));
-    M = Mnew*([TR, TT; [0 0 0 1]]);
     %Mi = [TR, TT; [0 0 0 1]];
     %M = inv(Mi);
     handles.M = M;

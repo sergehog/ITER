@@ -47,8 +47,8 @@ function application_OpeningFcn(hObject, eventdata, handles, varargin)
 
     addpath(genpath('..\libs'));
 
-    %handles.setup = 1; % my stereo-camera setup
-    handles.setup = 2; % hydraulics Lab stereo-camera setup
+    handles.setup = 1; % my stereo-camera setup
+    %handles.setup = 2; % hydraulics Lab stereo-camera setup
 
     % Choose default command line output for application
     handles.output = hObject;
@@ -65,6 +65,7 @@ function application_OpeningFcn(hObject, eventdata, handles, varargin)
     params2 = load(['hand2eye',num2str(handles.setup),'.mat']); 
     %params2 = load(['hand2eye.mat']); 
     handles.X = params2.X;
+    handles.takecoords = 0;
 
     %filename = '..\STL\Knuckle_cut_to_size2.stl'; 
     filename = '..\STL\knuckle+Cassete.stl'; 
@@ -96,7 +97,7 @@ function application_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.vid2.TriggerRepeat = Inf;
 
     %vid.TriggerRepeat = Inf;
-    handles.imageDir = ['images/',date(),'/', num2str(round(rand()*1000000))];
+    handles.imageDir = ['images/',date(),'-', num2str(round(rand()*1000000))];
     status = mkdir(handles.imageDir);
     disp(handles.imageDir);
     disp(status);

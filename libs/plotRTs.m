@@ -37,6 +37,7 @@ end
     hold on
     O = [0 0 0; 100 0 0; 0 0 0; 0 100 0; 0 0 0; 0 0 100];
     plot3(O(:, 1), O(:, 2), O(:, 3), 'k');
+    %ylim([0 1600])
     axis equal
     %a = axes(f);
     %set(a,'YDir','reverse');
@@ -49,7 +50,8 @@ end
     xlabel('x');
     ylabel('y');
     zlabel('z');
-
+    
+   
     
     
 
