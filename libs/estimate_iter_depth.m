@@ -5,7 +5,7 @@ end
 if nargin < 11
     adaptive_theshold = 0;
 end
-radius = 4;
+radius = 5;
 
 [Lx, Ly] = gradient(L);
 [Rx, Ry] = gradient(R);
@@ -60,7 +60,7 @@ clear mex
 ZL = 1 ./ ((DispL / layers)*(1/minZ - 1/maxZ2) + 1/maxZ2);
 ZR = 1 ./ ((DispR / layers)*(1/minZ - 1/maxZ2) + 1/maxZ2);
 %figure; imshow(EL, [0 10]); colormap(jet)
-%figure; imshow(ZL, [min(ZL(:))*0.8 max(ZL(:))*1.2]); title('Estimated Dense Depth'); colormap(gca, pink)
+%figure; imshow(ZL, [min(ZL(:))*0.9 max(ZL(:))*1.1]); title('Estimated Dense Depth'); colormap(gca, pink)
 [ValidL, ValidR] = left2right(ZL, CL, ZR, CR, 5, minZ, maxZ2);
 %[ValidL, ValidR] = ltr_planar(AL, AR, 10, 10);
 ZL(~ValidL) = nan;
@@ -70,7 +70,7 @@ ZR(ZR > maxZ) = nan;
 
 
 
-%figure; imshow(ZL, [minZ maxZ]); colormap(gca, pink); title('Estimated Depth Map');
+%figure; imshow(ZL, [minZ maxZ]); colormap(gca, pink); title('Confident Depth');
 
 if adaptive_theshold>0
     La = fast_average(L, 20);

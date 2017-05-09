@@ -37,16 +37,19 @@ function application_depth(hObject, eventdata, handles)
     %toc
     
     axes(handles.axes1);
+    cla
     imshow(uint8(L));
     drawnow
     axis off;
 
     axes(handles.axes2);
+    cla
     imshow(uint8(R));
     drawnow
     axis off;
 
     axes(handles.axes3);
+    cla
     colormap(handles.axes3, jet)
     imshow(ZL, [minZ maxZ]);    
     colormap(gca, jet);

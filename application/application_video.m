@@ -16,12 +16,12 @@ function application_video(hObject, eventdata, figHandle)
     flushdata(handles.vid2);
     
     axes(handles.axes1);
-    imshow(uint8(Image1));
+    imshow(imrotate(uint8(Image1), 90));
     %drawnow
     axis off;
 
     axes(handles.axes2);
-    imshow(uint8(Image2));
+    imshow(imrotate(uint8(Image2), 90));
     %drawnow
     axis off;
     %disp(handles.takeImages);

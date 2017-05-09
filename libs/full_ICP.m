@@ -1,6 +1,7 @@
-function [M, ZL, Zm] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, WorstRejection, thrPosPlane, thrNegPlane)
+function [M, ZL, Zm, Points] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, WorstRejection, thrPosPlane, thrNegPlane)
     random_points = 2000;
     iterations = 1000;
+    
     % Estimate Depth from stereo 
     [h, w, ~] = size(L);
     [ZL, ~] = estimate_iter_depth(L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling);    
@@ -8,7 +9,7 @@ function [M, ZL, Zm] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG,
     XYZl = backproject_Z(ZL, CL);
     
     % find majour plane in the scene in camera coordinate system
-    [a, b, c] = find_major_plane(XYZl(:,1), XYZl(:,2), XYZl(:,3), 1000, 20);
+    [a, b, c] = find_major_plane(XYZl(:,1), XYZl(:,2), XYZl(:,3), 1000, 10);
     
     
     % filter out too distant points
@@ -19,7 +20,7 @@ function [M, ZL, Zm] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG,
 
     
     % coarse alignment matrix
-    Rini = rodrigues([atan(b), -atan(a), 0]);       
+    Rini = rodrigues([atan(b), -atan(a), pi]);       
     Tini = [1 0 0 XYZlm(1); 0 1 0 XYZlm(2); 0 0 1 XYZlm(3); 0 0 0 1];
     Mnew = Tini*[Rini, [0 0 0]'; 0 0 0 1];
 
@@ -47,8 +48,8 @@ function [M, ZL, Zm] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG,
         clear Z2x Mask;            
     end
     
-    %figure; imshow(ZL, [min(ZL(:))*0.8 max(ZL(:))*1.2]); title('Estimated Depth'); colormap(gca, pink)
-    %figure; imshow(Zm, [min(Zm(:))*0.8 max(Zm(:))*1.2]); title('Coarsely Aligned Rendered Depth'); colormap(gca, pink)
+    figure; imshow(ZL, [min(ZL(:))*0.8 max(ZL(:))*1.2]); title('Estimated Depth'); colormap(gca, pink)
+    figure; imshow(Zm, [min(Zm(:))*0.8 max(Zm(:))*1.2]); title('Coarsely Aligned Rendered Depth'); colormap(gca, pink)
 
     
     % prepare point cloud from depth map    
@@ -88,18 +89,21 @@ function [M, ZL, Zm] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG,
     if 1==2
         [TR, TT, ~, ~] = icp2(XYZm', XYZl', iterations, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
         M = ([TR, TT; [0 0 0 1]]);    
-        M = inv(M)*Mnew;
-        XYZl2 = XYZl * TR + repmat(TT', [size(XYZl, 1) 1]);
-    
+        M = inv(M)*Mnew;       
+        XYZl = XYZl * TR' + repmat(TT', [size(XYZl, 1) 1]);
     else
         [TR, TT, ~, ~] = icp2(XYZl',XYZm', iterations, 'Verbose', true, 'WorstRejection', WorstRejection, 'Matching', 'kDtree');
         M = ([TR, TT; [0 0 0 1]]);    
         M = M*Mnew;
-        XYZl2 = XYZl * TR' + repmat(-TT'*TR', [size(XYZl, 1) 1]);
+        XYZm = XYZm * TR' + repmat(TT', [size(XYZm, 1) 1]);
     end
     
     %figure;
     %scatter3(XYZm(:,1),XYZm(:,3),XYZm(:,2),'.','b');
     %hold on
-    %scatter3(XYZl2(:,1),XYZl2(:,3),XYZl2(:,2),'.','r');
+    %scatter3(XYZl(:,1),XYZl(:,3),XYZl(:,2),'.','r');
     %title('After alignment');
+    if nargin > 3
+        Points{1} = XYZm;
+        Points{2} = XYZl;
+    end

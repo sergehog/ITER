@@ -10,7 +10,8 @@ function application_tracking(hObject, eventdata, handles)
     threshC = 50*handles.SliderColor.Value;    
     thrPlane = 100*handles.sliderPlane.Value;    
     robust_sampling = 0.01;
-    adaptive_thr = 0;
+    adaptive_thr = 0;    
+    thrNegPlane = thrPlane;
     
     
     stereoParams = handles.stereoParams;
@@ -42,7 +43,7 @@ function application_tracking(hObject, eventdata, handles)
     f = handles.f;
     v = handles.v;
         
-    [M, ZL] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, thrPosPlane, WorstRejection, thrNegPlane);
+    [M, ZL] = full_ICP(f, v, L, R, CL, CR, minZ, maxZ, layers, threshG, threshC, robust_sampling, adaptive_thr, WorstRejection, thrPlane, thrNegPlane);
     
     
     %Mi = [TR, TT; [0 0 0 1]];
@@ -64,12 +65,11 @@ function application_tracking(hObject, eventdata, handles)
     
     guidata(handles.editX1, handles);
     
-    % Visualization
-    light = 1000; % lumen (kinda lamp strength)
-    [~, Iz, ~] = render_CAD_model(f, v, CL, CR, M, h, w, minZ, maxZ, 1/light);    
+    % Visualization    
+    [~, Iz, ~] = render_CAD_model(f, v, CL, CR, M, h, w);    
     Iz(isnan(Iz)) = 0;
     Iz = Iz./max(Iz(:));    
-    Iv = L/255;
+    Iv = 2*L/255;
     Iv(:,:,3) = Iz(:,:,1);
     Iv(:,:,2) = (L/255 + Iz(:,:,1))/2;
     
@@ -79,20 +79,20 @@ function application_tracking(hObject, eventdata, handles)
     drawnow;
     axis off;
 
-    XYZm(:,4) = 1;
-    XYZm = ((inv(Mnew)*M)*XYZm')';
+    %XYZm(:,4) = 1;
+    %XYZm = (M'*XYZm')';
     
-    axes(handles.axes2);    
-    cla
+    %axes(handles.axes2);    
+    %cla
     %scatter3(XYZl(:,1), XYZl(:,2), XYZl(:,3), '.', 'r');
-    scatter(XYZl(:,1), XYZl(:,2), '.', 'r');
-    hold on
+    %scatter(XYZl(:,1), XYZl(:,2), '.', 'r');
+    %hold on
     %scatter3(XYZm(:,1), XYZm(:,2), XYZm(:,3), '.', 'b');
-    scatter(XYZm(:,1), XYZm(:,2), '.', 'b');
+    %scatter(XYZm(:,1), XYZm(:,2), '.', 'b');
     %xlim([-500 500]);
-    axis equal    
-    drawnow;    
-    axis off;
+    %axis equal    
+    %drawnow;    
+    %axis off;
     
     
     axes(handles.axes3);

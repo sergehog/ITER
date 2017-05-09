@@ -15,15 +15,16 @@ h = 540;
 
 %filename = '..\STL\Knuckle_cut_to_size2.stl
 %filename = '..\STL\knuckle+Cassete.stl'; 
-filename = '..\STL\mockup3.stl'; 
+filename = '..\STL\knuckle+Cassete2.stl'; 
+%filename = '..\STL\mockup3.stl'; 
 
 % Initial transform of a model (better to be transformed right in the STL file)
-RTmat = [eye(3), [0 0 0]'; 0 0 0 1]; 
+RTmat = [eye(3), [0 0 1000]'; 0 0 0 1]; 
 [f, v] = load_CAD_model(filename, RTmat);
 
 
-M = [rodrigues([0 0 0]), [0 0 500]'; 0 0 0 1];
-[Zm, Im, ~] = render_CAD_model(f, v, CL, CR, M, h, w, 0, 0, 1/1000, 0);
+M = [rodrigues([0 0 pi]), [0 0 0]'; 0 0 0 1];
+[Zm, Im, ~] = render_CAD_model(f, v, CL, CR, M, h, w, 1/1000, 0);
 figure; imshow(Zm, [min(Zm(:))*0.8 max(Zm(:))*1.2]); colormap(gca, pink); title('Current Model ');
 
 % one can re-align STL from MATLAB and re-save 

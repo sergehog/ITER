@@ -445,7 +445,23 @@ function pushbutton8_Callback(hObject, eventdata, handles)
     guidata(hObject, handles);
 end
 
-
+function updateDesiredCoordinates(handles)
+    
+    if ~isnan(handles.Xworld)
+        
+        XYZAERworld = rotm2xyzaer_zyz(handles.Xworld*handles.Tool);
+        disp('UFRAME position:')
+        disp(num2str(XYZAERworld));
+        handles.editX.String = num2str(XYZAERworld(1));
+        handles.editY.String = num2str(XYZAERworld(2));
+        handles.editZ.String = num2str(XYZAERworld(3));
+        handles.editAX.String = num2str(XYZAERworld(4));
+        handles.editAY.String = num2str(XYZAERworld(5));
+        handles.editAZ.String = num2str(XYZAERworld(6));
+        
+        guidata(handles.editX1, handles);
+    end
+end
 
 
 
@@ -460,7 +476,6 @@ function editX_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-end
 
 
 
@@ -471,7 +486,6 @@ function editY_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of editY as text
 %        str2double(get(hObject,'String')) returns contents of editY as a double
-end
 
 
 % --- Executes during object creation, after setting all properties.
@@ -484,7 +498,6 @@ function editY_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
-end
 end
 
 
